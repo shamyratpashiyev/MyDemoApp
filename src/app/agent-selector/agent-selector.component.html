@@ -1,0 +1,10 @@
+<div class="agent-selector-container">
+  <h3>Select an Agent:</h3>
+  <div class="agents">
+    <button *ngFor="let agent of agents" 
+            (click)="selectAgent(agent)"
+            [ngClass]="{'selected': agent.id === selectedAgent?.id}">
+      {{ agent.name }}
+    </button>
+  </div>
+</div>

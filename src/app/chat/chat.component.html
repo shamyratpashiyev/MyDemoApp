@@ -13,6 +13,7 @@
   </div>
   
   <app-model-selector></app-model-selector>
+  <app-agent-selector (agentSelected)="onAgentSelected($event)"></app-agent-selector>
   
   <div class="messages-container">
     @for (message of messages; track message.timestamp) {

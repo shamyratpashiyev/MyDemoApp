@@ -5,11 +5,12 @@ import { GeminiService, GeminiModel } from '../services/gemini.service';
 import { ElevenLabsService } from '../services/eleven-labs.service';
 import { ChatMessage } from '../models/message.model';
 import { ModelSelectorComponent } from '../model-selector/model-selector.component';
+import { Agent, AgentSelectorComponent } from '../agent-selector/agent-selector.component';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModelSelectorComponent],
+  imports: [CommonModule, FormsModule, ModelSelectorComponent, AgentSelectorComponent],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss'
 })
@@ -49,6 +50,25 @@ export class ChatComponent implements OnInit {
 
   toggleTextToSpeech(): void {
     this.isTextToSpeechEnabled = !this.isTextToSpeechEnabled;
+  }
+
+  onAgentSelected(agent: Agent) {
+    // Send the prompt to the AI in the background without displaying it
+    this.geminiService.sendMessage(agent.prompt).subscribe({
+      next: (response) => {
+        // Log the confirmation for debugging, but don't show it to the user
+        console.log(`Agent set to ${agent.name}. AI confirmed:`, response);
+      },
+      error: (error) => {
+        console.error(`Error setting agent to ${agent.name}:`, error);
+        // Optionally, inform the user that the agent selection failed
+        this.messages.push({
+          content: `Sorry, I encountered an error trying to switch to the ${agent.name} agent. Please try again.`,
+          isUser: false,
+          timestamp: new Date()
+        });
+      }
+    });
   }
 
   /**
