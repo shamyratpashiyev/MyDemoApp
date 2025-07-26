@@ -1,6 +1,10 @@
 <div class="chat-container">
+  <audio #audioPlayer style="display: none;"></audio>
   <div class="chat-header">
     <h1>Gemini Chat</h1>
+    <button (click)="toggleTextToSpeech()" class="tts-button">
+      {{ isTextToSpeechEnabled ? '🔊' : '🔇' }}
+    </button>
     @if (currentModel) {
       <div class="current-model">
         Using: {{ currentModel.name }}

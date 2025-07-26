@@ -24,7 +24,7 @@ export class GeminiService {
 
   // Models we want to display (will be populated from API)
   private availableModels: GeminiModel[] = [];
-  
+
   // Current model (will be set after fetching models)
   private _currentModel = new BehaviorSubject<GeminiModel | null>(null);
   public currentModel$ = this._currentModel.asObservable();
@@ -49,30 +49,28 @@ export class GeminiService {
   private async fetchAvailableModels(): Promise<void> {
     try {
       this._modelsLoading.next(true);
-      
+
       // Get models from API - this is a workaround since we can't directly access the models
       // In a real app, we would use the proper API to get the models
-      
+
       // For now, let's just use our hardcoded models with correct IDs
       const modelsList: Array<{name: string}> = [
         { name: 'gemini-1.5-flash' }, // Using flash instead of pro to avoid quota issues
         { name: 'gemini-2.0-flash-001' }
       ];
-      
-      console.log('Models list:', modelsList);
-      
+
       // Filter to only include the models we want to display
-      const filteredModels = modelsList.filter((model: {name: string}) => 
+      const filteredModels = modelsList.filter((model: {name: string}) =>
         model.name === 'gemini-1.5-flash' || model.name === 'gemini-2.0-flash-001'
       );
-      
+
       // Map to our GeminiModel interface
       this.availableModels = filteredModels.map((model: {name: string}) => ({
         id: model.name,
         name: this.formatModelName(model.name),
         description: this.modelDescriptions[model.name] || 'A Gemini AI model'
       }));
-      
+
       // Set default model if we have models
       if (this.availableModels.length > 0) {
         this._currentModel.next(this.availableModels[0]);
@@ -80,7 +78,7 @@ export class GeminiService {
         // Fallback to hardcoded models if no matching models found
         this.setFallbackModels();
       }
-      
+
       this._modelsLoading.next(false);
     } catch (error) {
       console.error('Error fetching models:', error);
@@ -88,7 +86,7 @@ export class GeminiService {
       this._modelsLoading.next(false);
     }
   }
-  
+
   /**
    * Set fallback models if API fails
    */
@@ -105,10 +103,10 @@ export class GeminiService {
         description: this.modelDescriptions['gemini-2.0-flash-001']
       }
     ];
-    
+
     this._currentModel.next(this.availableModels[0]);
   }
-  
+
   /**
    * Format model name for display
    */
@@ -118,7 +116,7 @@ export class GeminiService {
     } else if (modelId === 'gemini-2.0-flash-001') {
       return 'Gemini 2.0 Flash';
     }
-    
+
     // Default formatting for other models
     return modelId
       .replace('gemini-', 'Gemini ')
