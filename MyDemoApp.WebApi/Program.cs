@@ -20,6 +20,15 @@ builder.Services.AddScoped<GeminiService>();
 builder.Services.AddScoped<AiStreamingService>();
 builder.Services.AddScoped<IAiModelService, AiModelService>();
 
+// Configure Email settings
+builder.Services.Configure<EmailConfiguration>(
+    builder.Configuration.GetSection("Email"));
+
+// Add Email services
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailProcessingService, EmailProcessingService>();
+builder.Services.AddHostedService<EmailBackgroundService>();
+
 // Add SignalR
 builder.Services.AddSignalR();
 
@@ -162,6 +171,52 @@ app.MapPost("/gemini/stream", async (AiStreamingService streamingService, Stream
     _ = Task.Run(async () => await streamingService.StreamAiResponseAsync(request.Prompt, request.ConnectionId));
 
     return Results.Ok(new { message = "Streaming started", connectionId = request.ConnectionId });
+});
+
+// Email management endpoints
+app.MapPost("/api/email/process", async (IEmailProcessingService emailProcessingService) =>
+{
+    try
+    {
+        await emailProcessingService.ProcessEmailsAsync();
+        return Results.Ok(new { message = "Email processing completed successfully" });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/email/status", (IConfiguration configuration) =>
+{
+    var emailConfig = configuration.GetSection("Email").Get<EmailConfiguration>();
+    var isConfigured = !string.IsNullOrEmpty(emailConfig?.Gmail?.Username) && 
+                      !string.IsNullOrEmpty(emailConfig?.Gmail?.Password);
+    
+    return Results.Ok(new 
+    { 
+        isConfigured,
+        triggerSubject = emailConfig?.TriggerSubject ?? "AI Request",
+        checkIntervalMinutes = emailConfig?.CheckIntervalMinutes ?? 1,
+        username = isConfigured ? emailConfig?.Gmail?.Username : "Not configured"
+    });
+});
+
+app.MapPost("/api/email/test", async (IEmailService emailService, TestEmailRequest request) =>
+{
+    try
+    {
+        await emailService.SendEmailAsync(
+            request.ToEmail, 
+            "Test Email from AI Assistant", 
+            "This is a test email to verify the email service is working correctly."
+        );
+        return Results.Ok(new { message = "Test email sent successfully" });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
 });
 
 app.Run();
