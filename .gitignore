@@ -42,3 +42,4 @@ testem.log
 Thumbs.db
 /MyDemoApp.WebApi/obj/
 /MyDemoApp.WebApi/bin/
+/MyDemoApp.WebApi/appsettings.json
