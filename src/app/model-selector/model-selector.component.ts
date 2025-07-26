@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { GeminiService, GeminiModel } from '../services/gemini.service';
+import { GeminiService } from '../services/gemini.service';
+import { AiModelService } from '../services/ai-model.service';
+import { AiModel } from '../models/ai-model.model';
 
 @Component({
   selector: 'app-model-selector',
@@ -11,26 +13,29 @@ import { GeminiService, GeminiModel } from '../services/gemini.service';
   styleUrl: './model-selector.component.scss'
 })
 export class ModelSelectorComponent implements OnInit {
-  models: GeminiModel[] = [];
-  selectedModelId: string = '';
-  currentModel: GeminiModel | null = null;
+  models: AiModel[] = [];
+  selectedModelId: number = 0;
+  currentModel: AiModel | null = null;
   isLoading: boolean = true;
 
-  constructor(private geminiService: GeminiService) {}
+  constructor(
+    private geminiService: GeminiService,
+    private aiModelService: AiModelService
+  ) {}
 
   ngOnInit(): void {
     // Subscribe to loading state
-    this.geminiService.modelsLoading$.subscribe(loading => {
+    this.aiModelService.loading$.subscribe(loading => {
       this.isLoading = loading;
-      
-      // Get available models when loading is complete
-      if (!loading) {
-        this.models = this.geminiService.getAvailableModels();
-      }
     });
     
-    // Set initial selected model
-    this.geminiService.currentModel$.subscribe(model => {
+    // Subscribe to available models
+    this.aiModelService.models$.subscribe(models => {
+      this.models = models;
+    });
+    
+    // Subscribe to current model
+    this.aiModelService.currentModel$.subscribe(model => {
       this.currentModel = model;
       if (model) {
         this.selectedModelId = model.id;
@@ -38,8 +43,18 @@ export class ModelSelectorComponent implements OnInit {
     });
   }
 
-  selectModel(modelId: string): void {
-    this.selectedModelId = modelId;
-    this.geminiService.setCurrentModel(modelId);
+  selectModel(modelId: number): void {
+    const model = this.models.find(m => m.id === modelId);
+    if (model) {
+      this.selectedModelId = modelId;
+      this.aiModelService.setCurrentModel(model).subscribe({
+        next: () => {
+          console.log(`Model switched to: ${model.name}`);
+        },
+        error: (error) => {
+          console.error('Error switching model:', error);
+        }
+      });
+    }
   }
 }

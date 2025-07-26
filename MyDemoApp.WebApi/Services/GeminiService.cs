@@ -1,14 +1,17 @@
 using GeminiDotnet;
 using GeminiDotnet.ContentGeneration;
 using Microsoft.Extensions.AI;
+using MyDemoApp.WebApi.Services;
 
 namespace MyDemoApp.WebApi.Services;
 
 public class GeminiService
 {
     private readonly GeminiClient _geminiClient;
+    private readonly IAiModelService _aiModelService;
+    private string _currentModelId = "gemini-1.5-flash"; // Default fallback
 
-    public GeminiService(IConfiguration configuration)
+    public GeminiService(IConfiguration configuration, IAiModelService aiModelService)
     {
         var apiKey = configuration["Gemini:ApiKey"];
         if (string.IsNullOrEmpty(apiKey))
@@ -20,6 +23,36 @@ public class GeminiService
             ApiKey = apiKey
         };
         _geminiClient = new GeminiClient(options);
+        _aiModelService = aiModelService;
+        
+        // Initialize with default model
+        InitializeDefaultModelAsync();
+    }
+    
+    private async void InitializeDefaultModelAsync()
+    {
+        try
+        {
+            var defaultModel = await _aiModelService.GetDefaultModelAsync();
+            if (defaultModel != null)
+            {
+                _currentModelId = defaultModel.ModelId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not load default model: {ex.Message}");
+        }
+    }
+    
+    public void SetCurrentModel(string modelId)
+    {
+        _currentModelId = modelId;
+    }
+    
+    public string GetCurrentModel()
+    {
+        return _currentModelId;
     }
 
     public async Task<string> GenerateTextAsync(string prompt)
@@ -35,7 +68,7 @@ public class GeminiService
             ]
         };
         var response = string.Empty;
-        await foreach (var result in _geminiClient.GenerateContentStreamingAsync("gemini-2.0-flash", request))
+        await foreach (var result in _geminiClient.GenerateContentStreamingAsync(_currentModelId, request))
         {
           foreach (var candidate in result.Candidates)
           {
@@ -62,7 +95,7 @@ public class GeminiService
             ]
         };
 
-        await foreach (var result in _geminiClient.GenerateContentStreamingAsync("gemini-2.0-flash", request))
+        await foreach (var result in _geminiClient.GenerateContentStreamingAsync(_currentModelId, request))
         {
             foreach (var candidate in result.Candidates)
             {

@@ -3,7 +3,10 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, of, Subject } from 'rxjs';
 import { catchError, map, takeUntil, filter } from 'rxjs/operators';
 import * as signalR from '@microsoft/signalr';
+import { AiModelService } from './ai-model.service';
+import { AiModel } from '../models/ai-model.model';
 
+// Keep for backward compatibility
 export interface GeminiModel {
   id: string;
   name: string;
@@ -23,31 +26,17 @@ export class GeminiService {
   private backendUrl = 'http://localhost:5134/gemini';
   private streamingUrl = 'http://localhost:5134/gemini/stream';
   private signalRUrl = 'http://localhost:5134/aiStreamingHub';
-  
+
   // SignalR connection
   private hubConnection: signalR.HubConnection | null = null;
   private isSignalRConnected = false;
+  public currentModel$;
+  public modelsLoading$;
 
-  // Model descriptions for the models we want to display
-  private modelDescriptions: Record<string, string> = {
-    'gemini-1.5-flash': 'Best for complex tasks with faster response times',
-    'gemini-2.0-flash-001': 'Latest model, optimized for chat and simple tasks'
-  };
-
-  // Models we want to display (will be populated from API)
-  private availableModels: GeminiModel[] = [];
-
-  // Current model (will be set after fetching models)
-  private _currentModel = new BehaviorSubject<GeminiModel | null>(null);
-  public currentModel$ = this._currentModel.asObservable();
-
-  // Loading state for models
-  private _modelsLoading = new BehaviorSubject<boolean>(true);
-  public modelsLoading$ = this._modelsLoading.asObservable();
-
-  constructor(private http: HttpClient) {
-    this.fetchAvailableModels();
+  constructor(private http: HttpClient, private aiModelService: AiModelService) {
     this.initializeSignalRConnection();
+    this.currentModel$ = this.aiModelService.currentModel$;
+    this.modelsLoading$ = this.aiModelService.loading$;
   }
 
   /**
@@ -71,42 +60,24 @@ export class GeminiService {
   }
 
   /**
-   * Fetch available models from the API
+   * Get all available models (delegated to AiModelService)
    */
-  private fetchAvailableModels(): void {
-    // This part is now client-side only, as the backend handles the model logic.
-    // We can keep this to display model options in the UI.
-    this.availableModels = [
-      {
-        id: 'gemini-1.5-flash',
-        name: 'Gemini 1.5 Flash',
-        description: this.modelDescriptions['gemini-1.5-flash']
-      },
-      {
-        id: 'gemini-2.0-flash-001',
-        name: 'Gemini 2.0 Flash',
-        description: this.modelDescriptions['gemini-2.0-flash-001']
-      }
-    ];
-    this._currentModel.next(this.availableModels[0]);
-    this._modelsLoading.next(false);
+  getAvailableModels(): AiModel[] {
+    return this.aiModelService.getCurrentModels();
   }
 
   /**
-   * Get all available models
+   * Set the current model (delegated to AiModelService)
    */
-  getAvailableModels(): GeminiModel[] {
-    return [...this.availableModels];
+  setCurrentModel(model: AiModel): Observable<any> {
+    return this.aiModelService.setCurrentModel(model);
   }
 
   /**
-   * Set the current model
+   * Get current model (delegated to AiModelService)
    */
-  setCurrentModel(modelId: string): void {
-    const model = this.availableModels.find(m => m.id === modelId);
-    if (model) {
-      this._currentModel.next(model);
-    }
+  getCurrentModel(): AiModel | null {
+    return this.aiModelService.getCurrentModel();
   }
 
   /**
@@ -163,7 +134,7 @@ export class GeminiService {
         observer.error(new Error('SignalR connection ID not available'));
         return;
       }
-      
+
       this.sendStreamingRequest(message, connectionId)
         .catch(error => {
           console.error('Error sending streaming request:', error);
@@ -267,7 +238,7 @@ export class GeminiService {
         observer.error(new Error('SignalR connection ID not available'));
         return;
       }
-      
+
       this.sendStreamingRequest(message, connectionId)
         .catch(error => {
           console.error('Error sending streaming request:', error);

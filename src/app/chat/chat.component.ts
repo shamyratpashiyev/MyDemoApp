@@ -1,11 +1,12 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { GeminiService, GeminiModel } from '../services/gemini.service';
+import { GeminiService } from '../services/gemini.service';
 import { ElevenLabsService } from '../services/eleven-labs.service';
 import { ChatMessage } from '../models/message.model';
 import { ModelSelectorComponent } from '../model-selector/model-selector.component';
 import { Agent, AgentSelectorComponent } from '../agent-selector/agent-selector.component';
+import { AiModel } from '../models/ai-model.model';
 
 @Component({
   selector: 'app-chat',
@@ -20,7 +21,7 @@ export class ChatComponent implements OnInit {
   newMessage: string = '';
   isLoading: boolean = false;
   isStreaming: boolean = false;
-  currentModel: GeminiModel | null = null;
+  currentModel: AiModel | null = null;
   isTextToSpeechEnabled: boolean = true;
 
   constructor(private geminiService: GeminiService, private elevenLabsService: ElevenLabsService) {
