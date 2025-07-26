@@ -34,7 +34,7 @@ public class GeminiService
               }
             ]
         };
-        var response = "";
+        var response = string.Empty;
         await foreach (var result in _geminiClient.GenerateContentStreamingAsync("gemini-2.0-flash", request))
         {
           foreach (var candidate in result.Candidates)

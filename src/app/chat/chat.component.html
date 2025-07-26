@@ -11,10 +11,10 @@
       </div>
     }
   </div>
-  
+
   <app-model-selector></app-model-selector>
   <app-agent-selector (agentSelected)="onAgentSelected($event)"></app-agent-selector>
-  
+
   <div class="messages-container">
     @for (message of messages; track message.timestamp) {
       <div [ngClass]="{'message': true, 'user-message': message.isUser, 'ai-message': !message.isUser}">
@@ -27,13 +27,13 @@
             }
           </div>
           <div class="message-bubble">
-            <div class="message-text">{{ message.content }}</div>
+            <div class="message-text" [textContent]="message.content" style="white-space: pre-line;"></div>
             <div class="message-time">{{ message.timestamp | date:'short' }}</div>
           </div>
         </div>
       </div>
     }
-    
+
     <!-- Loading indicator -->
     @if (isLoading) {
       <div class="loading-indicator">
@@ -41,13 +41,13 @@
       </div>
     }
   </div>
-  
+
   <div class="input-container">
     <form (ngSubmit)="sendMessage()">
-      <input type="text" 
-             [(ngModel)]="newMessage" 
-             name="newMessage" 
-             placeholder="Type your message here..." 
+      <input type="text"
+             [(ngModel)]="newMessage"
+             name="newMessage"
+             placeholder="Type your message here..."
              [disabled]="isLoading || !currentModel"
              autocomplete="off">
       <button type="submit" [disabled]="!newMessage.trim() || isLoading || !currentModel">

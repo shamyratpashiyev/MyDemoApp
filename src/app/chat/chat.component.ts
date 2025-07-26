@@ -76,30 +76,32 @@ export class ChatComponent implements OnInit {
    */
   sendMessage(): void {
     if (!this.newMessage.trim()) return;
-    
+
     // Add user message to the chat
     this.messages.push({
       content: this.newMessage,
       isUser: true,
       timestamp: new Date()
     });
-    
+
     const userMessage = this.newMessage;
     this.newMessage = ''; // Clear input field
     this.isLoading = true;
-    
+
     // Get response from Gemini
     this.geminiService.sendMessage(userMessage).subscribe({
       next: (response) => {
+        console.log('Raw AI Response:', response); // Log the raw response
+        const formattedResponse = response.replace(/^"|"$/g, '').replace(/\n/g, '<br>');
         // Add AI response to the chat
         this.messages.push({
-          content: response,
+          content: formattedResponse,
           isUser: false,
           timestamp: new Date()
         });
         this.isLoading = false;
         if (this.isTextToSpeechEnabled) {
-          this.playAudio(response);
+          this.playAudio(formattedResponse);
         }
       },
       error: (error) => {
