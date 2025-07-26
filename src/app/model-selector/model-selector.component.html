@@ -1,0 +1,33 @@
+<div class="model-selector-container">
+  <div class="model-selector-header">
+    <h3>Choose Gemini Model</h3>
+  </div>
+  
+  @if (isLoading) {
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading available models...</p>
+    </div>
+  } @else if (models.length === 0) {
+    <div class="no-models-message">
+      <p>No compatible models found. Please check your API key or try again later.</p>
+    </div>
+  } @else {
+    <div class="model-options">
+      @for (model of models; track model.id) {
+        <div 
+          class="model-option" 
+          [class.selected]="selectedModelId === model.id"
+          (click)="selectModel(model.id)">
+          <div class="model-option-header">
+            <div class="model-name">{{ model.name }}</div>
+            @if (selectedModelId === model.id) {
+              <div class="model-badge">Active</div>
+            }
+          </div>
+          <div class="model-description">{{ model.description }}</div>
+        </div>
+      }
+    </div>
+  }
+</div>
