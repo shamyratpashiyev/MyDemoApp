@@ -48,4 +48,32 @@ public class GeminiService
 
         return response;
     }
+
+    public async IAsyncEnumerable<string> GenerateTextStreamingAsync(string prompt)
+    {
+        var request = new GenerateContentRequest()
+        {
+            Contents =
+            [
+              new Content()
+              {
+                Parts = [new Part(){ Text = prompt }]
+              }
+            ]
+        };
+
+        await foreach (var result in _geminiClient.GenerateContentStreamingAsync("gemini-2.0-flash", request))
+        {
+            foreach (var candidate in result.Candidates)
+            {
+                foreach (var part in candidate.Content.Parts)
+                {
+                    if (!string.IsNullOrEmpty(part.Text))
+                    {
+                        yield return part.Text;
+                    }
+                }
+            }
+        }
+    }
 }

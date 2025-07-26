@@ -19,6 +19,7 @@ export class ChatComponent implements OnInit {
   messages: ChatMessage[] = [];
   newMessage: string = '';
   isLoading: boolean = false;
+  isStreaming: boolean = false;
   currentModel: GeminiModel | null = null;
   isTextToSpeechEnabled: boolean = true;
 
@@ -59,6 +60,9 @@ export class ChatComponent implements OnInit {
         // Log the confirmation for debugging, but don't show it to the user
         console.log(`Agent set to ${agent.name}. AI confirmed:`, response);
       },
+      complete: () => {
+        console.log(`Agent ${agent.name} setup completed`);
+      },
       error: (error) => {
         console.error(`Error setting agent to ${agent.name}:`, error);
         // Optionally, inform the user that the agent selection failed
@@ -87,33 +91,41 @@ export class ChatComponent implements OnInit {
     const userMessage = this.newMessage;
     this.newMessage = ''; // Clear input field
     this.isLoading = true;
+    this.isStreaming = true;
+
+    // Create a placeholder message for the AI response that will be updated
+    const aiMessageIndex = this.messages.length;
+    this.messages.push({
+      content: '',
+      isUser: false,
+      timestamp: new Date()
+    });
 
     // Get response from Gemini
     this.geminiService.sendMessage(userMessage).subscribe({
       next: (response) => {
         console.log('Raw AI Response:', response); // Log the raw response
         const formattedResponse = response.replace(/^"|"$/g, '').replace(/\n/g, '<br>');
-        // Add AI response to the chat
-        this.messages.push({
-          content: formattedResponse,
-          isUser: false,
-          timestamp: new Date()
-        });
+        // Update the existing AI message instead of adding a new one
+        this.messages[aiMessageIndex].content = formattedResponse;
+      },
+      complete: () => {
         this.isLoading = false;
-        if (this.isTextToSpeechEnabled) {
-          this.playAudio(formattedResponse);
+        this.isStreaming = false;
+        // Play audio only when streaming is complete
+        if (this.isTextToSpeechEnabled && this.messages[aiMessageIndex].content) {
+          // Remove HTML tags for audio playback
+          const textForAudio = this.messages[aiMessageIndex].content.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '');
+          this.playAudio(textForAudio);
         }
       },
       error: (error) => {
         console.error('Error getting response:', error);
         const errorMessage = 'Sorry, I encountered an error processing your request.';
-        // Add error message to the chat
-        this.messages.push({
-          content: errorMessage,
-          isUser: false,
-          timestamp: new Date()
-        });
+        // Update the AI message with error
+        this.messages[aiMessageIndex].content = errorMessage;
         this.isLoading = false;
+        this.isStreaming = false;
         if (this.isTextToSpeechEnabled) {
           this.playAudio(errorMessage);
         }

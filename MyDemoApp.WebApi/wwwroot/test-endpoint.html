@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Streaming Endpoint</title>
+</head>
+<body>
+    <h1>Test Streaming Endpoint</h1>
+    <button onclick="testEndpoint()">Test /gemini/stream/test</button>
+    <button onclick="testStreamingEndpoint()">Test /gemini/stream</button>
+    <div id="result"></div>
+
+    <script>
+        async function testEndpoint() {
+            const resultDiv = document.getElementById('result');
+            try {
+                const response = await fetch('http://localhost:5134/gemini/stream/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: "Test prompt",
+                        connectionId: "test-connection-id"
+                    })
+                });
+
+                const result = await response.json();
+                resultDiv.innerHTML = '<h3>Test Result:</h3><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                resultDiv.innerHTML = '<h3>Error:</h3><p>' + error.message + '</p>';
+            }
+        }
+
+        async function testStreamingEndpoint() {
+            const resultDiv = document.getElementById('result');
+            try {
+                const response = await fetch('http://localhost:5134/gemini/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: "Test streaming prompt",
+                        connectionId: "test-connection-id"
+                    })
+                });
+
+                const result = await response.json();
+                resultDiv.innerHTML = '<h3>Streaming Test Result:</h3><pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                resultDiv.innerHTML = '<h3>Error:</h3><p>' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

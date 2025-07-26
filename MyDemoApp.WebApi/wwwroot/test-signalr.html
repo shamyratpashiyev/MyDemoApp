@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Streaming Test</title>
+    <script src="https://unpkg.com/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+</head>
+<body>
+    <h1>AI Streaming Test</h1>
+    <div>
+        <input type="text" id="promptInput" placeholder="Enter your prompt..." style="width: 400px;">
+        <button onclick="sendPrompt()">Send</button>
+    </div>
+    <div>
+        <h3>Response:</h3>
+        <div id="response" style="border: 1px solid #ccc; padding: 10px; min-height: 200px; white-space: pre-wrap;"></div>
+    </div>
+    <div>
+        <h3>Status:</h3>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let connection;
+        let responseDiv = document.getElementById('response');
+        let statusDiv = document.getElementById('status');
+
+        // Initialize SignalR connection
+        async function initializeConnection() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("http://localhost:5134/aiStreamingHub") // Adjust port as needed
+                .build();
+
+            // Handle streaming events
+            connection.on("StreamStarted", function (data) {
+                statusDiv.innerHTML = "Streaming started...";
+                responseDiv.innerHTML = ""; // Clear previous response
+            });
+
+            connection.on("StreamChunk", function (data) {
+                responseDiv.innerHTML += data.chunk;
+                responseDiv.scrollTop = responseDiv.scrollHeight;
+            });
+
+            connection.on("StreamCompleted", function () {
+                statusDiv.innerHTML = "Streaming completed!";
+            });
+
+            connection.on("StreamError", function (data) {
+                statusDiv.innerHTML = "Error: " + data.error;
+            });
+
+            try {
+                await connection.start();
+                statusDiv.innerHTML = "Connected to SignalR hub";
+            } catch (err) {
+                statusDiv.innerHTML = "Error connecting: " + err;
+            }
+        }
+
+        async function sendPrompt() {
+            const prompt = document.getElementById('promptInput').value;
+            if (!prompt.trim()) {
+                alert('Please enter a prompt');
+                return;
+            }
+
+            if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+                statusDiv.innerHTML = "Not connected to SignalR hub";
+                return;
+            }
+
+            try {
+                // Call the streaming endpoint
+                const response = await fetch('http://localhost:5134/gemini/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        connectionId: connection.connectionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const result = await response.json();
+                statusDiv.innerHTML = result.message;
+            } catch (error) {
+                statusDiv.innerHTML = "Error sending prompt: " + error;
+            }
+        }
+
+        // Initialize connection when page loads
+        window.onload = initializeConnection;
+    </script>
+</body>
+</html>
