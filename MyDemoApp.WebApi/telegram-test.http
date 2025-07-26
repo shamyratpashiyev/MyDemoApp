@@ -1,0 +1,14 @@
+### Check Telegram Bot Status
+GET https://localhost:7139/api/telegram/status
+
+### Send Test Message via API (replace chatId with actual chat ID)
+POST https://localhost:7139/api/telegram/send
+Content-Type: application/json
+
+{
+  "chatId": 123456789,
+  "message": "Test message from API"
+}
+
+### Check if bot is configured
+GET https://localhost:7139/api/telegram/status

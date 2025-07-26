@@ -29,6 +29,17 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailProcessingService, EmailProcessingService>();
 builder.Services.AddHostedService<EmailBackgroundService>();
 
+// Configure Telegram settings
+builder.Services.Configure<TelegramConfiguration>(
+    builder.Configuration.GetSection("Telegram"));
+
+// Add Telegram services
+builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
+builder.Services.AddHostedService<TelegramBackgroundService>();
+
+// Add startup validation
+builder.Services.AddHostedService<StartupValidationService>();
+
 // Add SignalR
 builder.Services.AddSignalR();
 
@@ -190,11 +201,11 @@ app.MapPost("/api/email/process", async (IEmailProcessingService emailProcessing
 app.MapGet("/api/email/status", (IConfiguration configuration) =>
 {
     var emailConfig = configuration.GetSection("Email").Get<EmailConfiguration>();
-    var isConfigured = !string.IsNullOrEmpty(emailConfig?.Gmail?.Username) && 
+    var isConfigured = !string.IsNullOrEmpty(emailConfig?.Gmail?.Username) &&
                       !string.IsNullOrEmpty(emailConfig?.Gmail?.Password);
-    
-    return Results.Ok(new 
-    { 
+
+    return Results.Ok(new
+    {
         isConfigured,
         triggerSubject = emailConfig?.TriggerSubject ?? "AI Request",
         checkIntervalMinutes = emailConfig?.CheckIntervalMinutes ?? 1,
@@ -207,11 +218,39 @@ app.MapPost("/api/email/test", async (IEmailService emailService, TestEmailReque
     try
     {
         await emailService.SendEmailAsync(
-            request.ToEmail, 
-            "Test Email from AI Assistant", 
+            request.ToEmail,
+            "Test Email from AI Assistant",
             "This is a test email to verify the email service is working correctly."
         );
         return Results.Ok(new { message = "Test email sent successfully" });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+// Telegram bot management endpoints
+app.MapGet("/api/telegram/status", (IConfiguration configuration) =>
+{
+    var telegramConfig = configuration.GetSection("Telegram").Get<TelegramConfiguration>();
+    var isConfigured = !string.IsNullOrEmpty(telegramConfig?.BotToken);
+
+    return Results.Ok(new
+    {
+        isConfigured,
+        hasAllowedUsers = telegramConfig?.AllowedUsers?.Any() ?? false,
+        allowedUsersCount = telegramConfig?.AllowedUsers?.Count ?? 0,
+        webhookUrl = telegramConfig?.WebhookUrl ?? ""
+    });
+});
+
+app.MapPost("/api/telegram/send", async (ITelegramBotService telegramService, TelegramSendMessageRequest request) =>
+{
+    try
+    {
+        await telegramService.SendMessageAsync(request.ChatId, request.Message);
+        return Results.Ok(new { message = "Message sent successfully" });
     }
     catch (Exception ex)
     {
